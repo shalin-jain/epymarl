@@ -1,0 +1,130 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class HyperNetwork(nn.Module):
+    """
+    Network to generate the weights of the target network
+    """
+
+    def __init__(self, hidden_dim, output_dim, init_scale, num_layers, use_layer_norm=True):
+        """
+        Initialize network
+
+        args:
+            hidden_dim (int): hidden layer dimension
+            output_dim (int): output layer dimension
+            init_scale (float): scale for weight initialization
+            num_layers (int): number of layers
+            use_layer_norm (bool): indicate whether to use layer normalization
+        """
+
+        super().__init__()
+        self.layers = nn.ModuleList()
+        for _ in range(num_layers - 1):
+            self.layers.append(nn.Linear(hidden_dim, hidden_dim))
+            if use_layer_norm:
+                self.layers.append(nn.LayerNorm(hidden_dim))
+            self.layers.append(nn.ReLU())
+        self.layers.append(nn.Linear(hidden_dim, output_dim))
+        self.init_scale = init_scale
+
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        """
+        Orthogonally initialize hypernetwork weights
+        """
+
+        for layer in self.layers:
+            if isinstance(layer, nn.Linear):
+                nn.init.orthogonal_(layer.weight, gain=self.init_scale)
+                nn.init.constant_(layer.bias, 0.0)
+
+    def forward(self, x):
+        """
+        Compute weights for target network
+
+        args:
+            x (torch.Tensor): network input [B, hidden_dim]
+        """
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+class HyperRNNAgent(nn.Module):
+    """
+    Agent with HyperNetwork action decoder
+    """
+
+    def __init__(self, input_dim, action_dim, hidden_dim, dim_capabilities, hypernet_kwargs):
+        """
+        Initialize HyperRNNAgent
+
+        args:
+            input_dim (int): input dimension
+            action_dim (int): output dimension
+            hidden_dim (int): dimension of hidden layers
+            dim_capabilities (int): dimension of capabilities, used for conditioning the hyper network
+            hypernetwork_kwargs (dict): hypernetwork specific args
+        """
+        super().__init__()
+        self.action_dim = action_dim
+        self.hidden_dim = hidden_dim
+        self.dim_capabilities = dim_capabilities
+
+        # 1 layer encoder mlp
+        self.encoder = nn.Linear(input_dim - dim_capabilities, hidden_dim)
+        
+        # GRU cell
+        self.rnn = nn.GRUCell(hidden_dim, hidden_dim)
+
+        # weight and bias hypernetwork
+        self.weight_hypernet = HyperNetwork(
+            hidden_dim=hypernet_kwargs["HIDDEN_DIM"],
+            output_dim=hidden_dim * action_dim,
+            init_scale=hypernet_kwargs["INIT_SCALE"],
+            num_layers=hypernet_kwargs["NUM_LAYERS"],
+            use_layer_norm=hypernet_kwargs["USE_LAYER_NORM"]
+        )
+        self.bias_hypernet = HyperNetwork(
+            hidden_dim=hypernet_kwargs["HIDDEN_DIM"],
+            output_dim=action_dim,
+            init_scale=0.0,
+            num_layers=hypernet_kwargs["NUM_LAYERS"],
+            use_layer_norm=hypernet_kwargs["USE_LAYER_NORM"]
+        )
+
+    def forward(self, obs, hidden_state, dones):
+        """
+        Get agent Q values
+
+        args:
+            obs: agent observation (batch_size, input_dim)
+            hidden_state: agent gru hidden state (batch_size, hidden_dim)
+            dones: episode done (batch_size,)
+
+        returns:
+            q_values: action q values (batch_size, action_dim)
+            hidden_state: updated hidden state (batch_size, hidden_dim)
+        """
+
+        batch_size = obs.size(0)
+        capabilities = obs[:, -self.dim_capabilities:]
+        observations = obs[:, :-self.dim_capabilities]
+
+        # encode observations
+        embedding = F.relu(self.encoder(observations))
+
+        # update RNN hidden state
+        hidden_state = self.rnn(embedding, hidden_state * (1 - dones).unsqueeze(1))
+
+        # generate weights and biases using hypernetworks (include obs + capabilities)
+        weights = self.weight_hypernet(obs).view(batch_size, self.hidden_dim, self.action_dim)
+        biases = self.bias_hypernet(obs).view(batch_size, 1, self.action_dim)
+
+        # q = embedding @ weights + biases
+        q_values = torch.bmm(hidden_state.unsqueeze(1), weights) + biases
+        q_values = q_values.squeeze(1)  # Remove the extra dimension
+
+        return q_values, hidden_state
