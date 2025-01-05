@@ -59,11 +59,17 @@ class Logger:
 
         group_name = "_".join([alg_name, env_name, self.config_hash])
 
+        print(config)
+
+        cap_aware = "aware" if config.get("capability_aware", False) else "unaware"
+        agent_type = f"{config['agent']} {cap_aware}"
+        run_name = f"{alg_name} / {agent_type} / {env_name}"
         self.wandb = wandb.init(
             entity=team_name,
             project=project_name,
             config=config,
             group=group_name,
+            name=run_name,
             mode=mode,
         )
 

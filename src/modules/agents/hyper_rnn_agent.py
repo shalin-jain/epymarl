@@ -57,42 +57,43 @@ class HyperRNNAgent(nn.Module):
     Agent with HyperNetwork action decoder
     """
 
-    def __init__(self, input_dim, action_dim, hidden_dim, dim_capabilities, hypernet_kwargs):
+    def __init__(self, input_dim, args):
         """
         Initialize HyperRNNAgent
 
         args:
             input_dim (int): input dimension
-            action_dim (int): output dimension
-            hidden_dim (int): dimension of hidden layers
-            dim_capabilities (int): dimension of capabilities, used for conditioning the hyper network
-            hypernetwork_kwargs (dict): hypernetwork specific args
+            args.action_dim (int): output dimension
+            args.hidden_dim (int): dimension of hidden layers
+            args.dim_capabilities (int): dimension of capabilities, used for conditioning the hyper network
+            args.hypernetwork_kwargs (dict): hypernetwork specific args
         """
         super().__init__()
-        self.action_dim = action_dim
-        self.hidden_dim = hidden_dim
-        self.dim_capabilities = dim_capabilities
+        self.action_dim = args.action_dim
+        self.hidden_dim = args.hidden_dim
+        self.dim_capabilities = args.dim_capabilities
+        self.hypernet_kwargs = args.hypernetwork_kwargs
 
         # 1 layer encoder mlp
-        self.encoder = nn.Linear(input_dim - dim_capabilities, hidden_dim)
+        self.encoder = nn.Linear(input_dim - self.dim_capabilities, self.hidden_dim)
         
         # GRU cell
-        self.rnn = nn.GRUCell(hidden_dim, hidden_dim)
+        self.rnn = nn.GRUCell(self.hidden_dim, self.hidden_dim)
 
         # weight and bias hypernetwork
         self.weight_hypernet = HyperNetwork(
-            hidden_dim=hypernet_kwargs["HIDDEN_DIM"],
-            output_dim=hidden_dim * action_dim,
-            init_scale=hypernet_kwargs["INIT_SCALE"],
-            num_layers=hypernet_kwargs["NUM_LAYERS"],
-            use_layer_norm=hypernet_kwargs["USE_LAYER_NORM"]
+            hidden_dim=self.hypernet_kwargs["HIDDEN_DIM"],
+            output_dim=self.hidden_dim * self.action_dim,
+            init_scale=self.hypernet_kwargs["INIT_SCALE"],
+            num_layers=self.hypernet_kwargs["NUM_LAYERS"],
+            use_layer_norm=self.hypernet_kwargs["USE_LAYER_NORM"]
         )
         self.bias_hypernet = HyperNetwork(
-            hidden_dim=hypernet_kwargs["HIDDEN_DIM"],
-            output_dim=action_dim,
+            hidden_dim=self.hypernet_kwargs["HIDDEN_DIM"],
+            output_dim=self.action_dim,
             init_scale=0.0,
-            num_layers=hypernet_kwargs["NUM_LAYERS"],
-            use_layer_norm=hypernet_kwargs["USE_LAYER_NORM"]
+            num_layers=self.hypernet_kwargs["NUM_LAYERS"],
+            use_layer_norm=self.hypernet_kwargs["USE_LAYER_NORM"]
         )
 
     def forward(self, obs, hidden_state, dones):
