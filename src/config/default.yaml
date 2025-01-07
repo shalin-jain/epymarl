@@ -50,7 +50,7 @@ hidden_dim: 128 # Size of hidden state for default rnn agent
 action_dim: 5
 dim_capabilities: 8
 hypernet_kwargs:
-  INPUT_DIM: 22 # for material transport
+  INPUT_DIM: 18 # for material transport
   HIDDEN_DIM: 32
   INIT_SCALE: 0.5
   NUM_LAYERS: 4
