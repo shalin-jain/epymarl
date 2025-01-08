@@ -1,8 +1,8 @@
 # --- QMIX specific parameters ---
 
-runner: "parallel"
-batch_size: 32
-batch_size_run: 32
+# runner: "parallel"
+# batch_size: 32
+# batch_size_run: 32
 
 # use epsilon greedy action selector
 action_selector: "epsilon_greedy"
@@ -11,7 +11,7 @@ epsilon_finish: 0.05
 epsilon_anneal_time: 50000
 evaluation_epsilon: 0.0
 
-# runner: "episode"
+runner: "episode"
 
 buffer_size: 5000
 
