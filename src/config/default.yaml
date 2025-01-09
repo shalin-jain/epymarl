@@ -46,12 +46,12 @@ add_value_last_step: True
 
 # --- Agent parameters ---
 agent: "rnn" # Default rnn agent
-hidden_dim: 128 # Size of hidden state for default rnn agent
+hidden_dim: 256 # Size of hidden state for default rnn agent
 action_dim: 5
 dim_capabilities: 8
 hypernet_kwargs:
   INPUT_DIM: 18 # for material transport
-  HIDDEN_DIM: 32
+  HIDDEN_DIM: 64
   INIT_SCALE: 0.5
   NUM_LAYERS: 4
   USE_LAYER_NORM: True
