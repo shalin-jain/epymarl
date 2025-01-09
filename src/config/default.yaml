@@ -1,4 +1,5 @@
 # --- Defaults ---
+seed: 2
 
 # --- pymarl options ---
 runner: "episode" # Runs 1 env for an episode
@@ -64,4 +65,4 @@ label: "default_label"
 hypergroup: null
 
 # --- JUST FOR WANDB LOGGING ---
-capability_aware: null
+capability_aware: True
