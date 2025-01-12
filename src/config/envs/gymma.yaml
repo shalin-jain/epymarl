@@ -1,9 +1,9 @@
 env: "gymma"
 
 env_args:
-  key: robotarium_gym:MaterialTransport-v0
+  key: robotarium_gym:PredatorCapturePrey-v0
   time_limit: 1000
-  seed: 2
+  seed: 0
   pretrained_wrapper: null
 
 test_greedy: True

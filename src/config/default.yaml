@@ -1,5 +1,5 @@
 # --- Defaults ---
-seed: 2
+seed: 0
 
 # --- pymarl options ---
 runner: "episode" # Runs 1 env for an episode
@@ -46,12 +46,14 @@ grad_norm_clip: 10 # Reduce magnitude of gradients above this L2 norm
 add_value_last_step: True
 
 # --- Agent parameters ---
-agent: "rnn" # Default rnn agent
-hidden_dim: 256 # Size of hidden state for default rnn agent
+agent: "hyper_rnn" # Default rnn agent
+hidden_dim: 128 # Size of hidden state for default rnn agent
 action_dim: 5
-dim_capabilities: 8
+# cap per agent * n agents
+dim_capabilities: 8 # for material transport and predator capture prey
 hypernet_kwargs:
-  INPUT_DIM: 18 # for material transport
+  # INPUT_DIM: 18 # for material transport
+  INPUT_DIM: 24 # for predator capture prey
   HIDDEN_DIM: 64
   INIT_SCALE: 0.5
   NUM_LAYERS: 4
